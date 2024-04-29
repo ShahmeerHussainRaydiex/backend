@@ -179,7 +179,8 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             ],
             max_tokens=150
         )
-        story = story_response.choices[0].message.content.strip('\n')
+        story = story_response.choices[0].message.content.replace('\n', ' ')
+        story = story.replace('\\', '')
 
         keyword_response = client.chat.completions.create(
             model="gpt-3.5-turbo",

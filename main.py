@@ -217,7 +217,7 @@ async def regenerate_script(user_script: str, prompt_type: str):
         return {"error": "Invalid prompt type"}
 
     # Use await to call the asynchronous function
-    regenerated_script = await generate_story(prompt)
+    regenerated_script = generate_story(prompt)
     return {"regenerated_script": regenerated_script}
 
 

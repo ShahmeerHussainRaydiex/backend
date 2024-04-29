@@ -7,14 +7,19 @@ from helper import video_to_base64
 import json
 from dotenv import load_dotenv
 import os
-from openai import OpenAI
+
 
 
 app = FastAPI()
 load_dotenv()
 
-# from openai import OpenAI
-client =OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = ""
+api_key = os.environ.get("OPENAI_API_KEY")
+
+if api_key is not None:
+    from openai import OpenAI
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
 
 @app.get("/check")
 async def root():

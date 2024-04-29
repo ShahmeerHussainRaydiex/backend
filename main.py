@@ -179,7 +179,7 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             ],
             max_tokens=150
         )
-        response = client.chat.completions.create(
+        keyword_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
@@ -195,8 +195,26 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             max_tokens=64,
             top_p=1
         )
-        urls = search_videos(response.choices[0].message.content.split('\n'))
-        return {"urls": urls,"keywords": response.choices[0].message.content ,"story": story_response.choices[0].message.content}
+        # urls = search_videos()
+        queries=keyword_response.choices[0].message.content.split('\n')
+        headers = {
+            "Authorization": f"{API_KEY}"
+        }
+        urls = []
+        # Make a request to the Pexels API
+        for query in queries:
+            try:
+                response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1",
+                                        headers=headers)
+            except Exception as e:
+                return {"error": e}
+
+            if response.status_code != 200:
+                continue
+            response = response.json()
+            link = response["videos"][0]["video_files"][0]["link"]
+            urls.append(link)
+        return {"urls": urls,"keywords": keyword_response ,"story": story_response.choices[0].message.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

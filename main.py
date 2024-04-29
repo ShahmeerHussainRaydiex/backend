@@ -8,8 +8,6 @@ import json
 from dotenv import load_dotenv
 import os
 
-
-
 app = FastAPI()
 load_dotenv()
 
@@ -18,6 +16,7 @@ api_key = os.environ.get("OPENAI_API_KEY")
 
 if api_key is not None:
     from openai import OpenAI
+
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
@@ -48,8 +47,9 @@ async def root():
     return {f"message": f"Hello World"}
 
 
-
 API_KEY = os.getenv("PEXEL")
+
+
 @app.get("/search/images")
 async def search_images(query: str):
     headers = {
@@ -67,28 +67,29 @@ async def search_images(query: str):
     return image_url
 
 
-@app.get("/search/videos")
-async def search_videos(query: str, per_page: int = 1):
+def search_videos(queries):
     headers = {
         "Authorization": f"{API_KEY}"
     }
-
+    urls = []
     # Make a request to the Pexels API
-    response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page={per_page}", headers=headers)
+    for query in queries:
+        try:
+            response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1",
+                                headers=headers)
+        except Exception as e:
+                return {"error":e}
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="Pexels API request failed")
-    response = response.json()
-    response_links = {}
-    for index, video in enumerate(response["videos"]):
-        link = video["video_files"][0]["link"]
-        response_links[f"url{index + 1}"] = link
-
-    return response_links
+        if response.status_code != 200:
+            continue
+        response = response.json()
+        link = response["videos"][0]["video_files"][0]["link"]
+        urls.append(link)
+    return urls
 
 
 @app.get("/search/test")
-async def search_videos(query: str, num_page: int = 1, per_page: int = 1):
+async def search_video(query: str, num_page: int = 1, per_page: int = 1):
     headers = {
         "Authorization": API_KEY
     }
@@ -169,21 +170,21 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def generate_story(prompt: str):
+async def generate_story(prompt: str="You're tasked with writing a story script "):
     try:
-        story_response =  client.chat.completions.create(
+        story_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": prompt}
             ],
             max_tokens=150
         )
-        response =  client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
-                    "content": "You will be provided with a block of text, and your task is to extract a list of keywords from it."
+                    "content": "You will be provided with a block of text, and your task is to extract sentences of 3 to 4 words which can help to search videos on pexel."
                 },
                 {
                     "role": "user",
@@ -194,9 +195,11 @@ async def generate_story(prompt: str):
             max_tokens=64,
             top_p=1
         )
-        return {"keywords": response.choices[0].message.content, "story": story_response.choices[0].message.content}
+        urls = search_videos(response.choices[0].message.content.split('\n'))
+        return {"urls": urls,"keywords": response.choices[0].message.content ,"story": story_response.choices[0].message.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/regenerate_script")
 async def regenerate_script(user_script: str, prompt_type: str):
@@ -218,10 +221,11 @@ async def regenerate_script(user_script: str, prompt_type: str):
     return {"regenerated_script": regenerated_script}
 
 
-
 @app.post("/generate-story/")
 async def story_generation(prompt: str):
     return {"response ": await generate_story(prompt)}
+
+
 @app.get("/convert_text_to_music/")
 async def convert_text_to_music(text: str):
     import requests

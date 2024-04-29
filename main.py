@@ -179,6 +179,8 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             ],
             max_tokens=150
         )
+        story = story_response.choices[0].message.content.strip('\n')
+
         keyword_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -188,7 +190,7 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
                 },
                 {
                     "role": "user",
-                    "content": story_response.choices[0].message.content
+                    "content": story
                 }
             ],
             temperature=0.5,
@@ -214,7 +216,7 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             response = response.json()
             link = response["videos"][0]["video_files"][0]["link"]
             urls.append(link)
-        return {"urls": urls,"keywords": keyword_response ,"story": story_response.choices[0].message.content}
+        return {"urls": urls,"story": story}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

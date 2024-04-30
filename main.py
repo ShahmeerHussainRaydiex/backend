@@ -8,6 +8,7 @@ import json
 from dotenv import load_dotenv
 import os
 from uuid import uuid4
+from fastapi.responses import FileResponse
 
 
 app = FastAPI()
@@ -144,7 +145,7 @@ async def search_videos_stable(prompt: str):
     return response.json()
 
 
-@app.post("/convert_text_to_speech/")
+@app.get("/convert_text_to_speech/")
 async def convert_text_to_speech(text: str):
     try:
         response = client.audio.speech.create(
@@ -155,7 +156,7 @@ async def convert_text_to_speech(text: str):
         unique_filename = f"speech_{uuid4()}.mp3"
         speech_file_path = Path(__file__).parent / unique_filename
         response.stream_to_file(speech_file_path)
-        return {"message": "Text converted to speech successfully"}
+        return FileResponse(unique_filename)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

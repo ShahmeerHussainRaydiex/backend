@@ -207,7 +207,7 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
         # Make a request to the Pexels API
         for query in queries:
             try:
-                response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1",
+                response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1&orientation=landscape&size=small",
                                         headers=headers)
             except Exception as e:
                 return {"error": e}
@@ -215,8 +215,10 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             if response.status_code != 200:
                 continue
             response = response.json()
-            link = response["videos"][0]["video_files"][0]["link"]
-            urls.append(link)
+            for video in  response['videos'][0]['video_files']:
+                if video['height'] == 720 and video['width'] == 1280:
+                    urls.append(video['link'])
+                    break
         return {"urls": urls,"story": story}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

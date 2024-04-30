@@ -1,15 +1,14 @@
-import io
 from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form
 import requests
 from pypexels import PyPexels
-from starlette.responses import StreamingResponse
-
 from helper import video_to_base64
 import json
 from dotenv import load_dotenv
 import os
+from uuid import uuid4
+
 
 app = FastAPI()
 load_dotenv()
@@ -153,11 +152,13 @@ async def convert_text_to_speech(text: str):
             voice="alloy",
             input=text
         )
-        # Read the audio data into memory
-        audio_data = response.content
-        return StreamingResponse(io.BytesIO(audio_data), media_type="audio/mpeg")
+        unique_filename = f"speech_{uuid4()}.mp3"
+        speech_file_path = Path(__file__).parent / unique_filename
+        response.stream_to_file(speech_file_path)
+        return {"message": "Text converted to speech successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/transcribe_audio/")
 async def transcribe_audio(audio_file: UploadFile = File(...)):

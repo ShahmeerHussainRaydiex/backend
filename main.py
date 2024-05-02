@@ -146,11 +146,11 @@ async def search_videos_stable(prompt: str):
 
 
 @app.get("/convert_text_to_speech/")
-async def convert_text_to_speech(text: str):
+async def convert_text_to_speech(text: str, voice: str = "onyx"):
     try:
         response = client.audio.speech.create(
             model="tts-1",
-            voice="alloy",
+            voice = voice,
             input=text
         )
         unique_filename = f"speech_{uuid4()}.mp3"
@@ -244,8 +244,8 @@ async def regenerate_script(user_script: str, prompt_type: str):
         return {"error": "Invalid prompt type"}
 
     # Use await to call the asynchronous function
-    regenerated_script = generate_story(prompt)
-    return {"regenerated_script": regenerated_script}
+    regenerated_script = await generate_story(prompt)
+    return regenerated_script
 
 
 @app.post("/generate-story/")

@@ -69,10 +69,9 @@ async def search_images(query: str):
     return image_url
 
 
-async def translate_text(text, target_language):
-    # Define the parameters for the translation request
+async def translate_text(text, language):
 
-    prompt = f"Translate the following English text into {target_language}: {text}"
+    prompt = f"Translate the following English text into {language}: {text}"
     story_response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -83,10 +82,10 @@ async def translate_text(text, target_language):
     translate_text = story_response.choices[0].message.content
     return translate_text
 @app.get("/title")
-async def translate_text(text):
+async def title(text):
     # Define the parameters for the translation request
 
-    prompt = f"Generate a title for following story "
+    prompt = f"Generate a title for following story {text}"
     story_response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -175,7 +174,7 @@ async def search_videos_stable(prompt: str):
 @app.get("/convert_text_to_speech/")
 async def convert_text_to_speech(text: str, voice: str = "onyx", language=""):
     if language != "":
-        text = await  translate_text(text, language)
+        text = await translate_text(text, language)
     try:
         response = client.audio.speech.create(
             model="tts-1",

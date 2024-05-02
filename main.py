@@ -10,7 +10,6 @@ import os
 from uuid import uuid4
 from fastapi.responses import FileResponse
 
-
 app = FastAPI()
 load_dotenv()
 
@@ -70,6 +69,34 @@ async def search_images(query: str):
     return image_url
 
 
+async def translate_text(text, target_language):
+    # Define the parameters for the translation request
+
+    prompt = f"Translate the following English text into {target_language}: {text}"
+    story_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": prompt}
+        ],
+        max_tokens=150
+    )
+    translate_text = story_response.choices[0].message.content
+    return translate_text
+@app.get("/title")
+async def translate_text(text):
+    # Define the parameters for the translation request
+
+    prompt = f"Generate a title for following story "
+    story_response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": prompt}
+        ],
+        max_tokens=150
+    )
+    title = story_response.choices[0].message.content
+    return title
+
 def search_videos(queries):
     headers = {
         "Authorization": f"{API_KEY}"
@@ -79,9 +106,9 @@ def search_videos(queries):
     for query in queries:
         try:
             response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1",
-                                headers=headers)
+                                    headers=headers)
         except Exception as e:
-                return {"error":e}
+            return {"error": e}
 
         if response.status_code != 200:
             continue
@@ -146,11 +173,13 @@ async def search_videos_stable(prompt: str):
 
 
 @app.get("/convert_text_to_speech/")
-async def convert_text_to_speech(text: str, voice: str = "onyx"):
+async def convert_text_to_speech(text: str, voice: str = "onyx", language=""):
+    if language != "":
+        text = await  translate_text(text, language)
     try:
         response = client.audio.speech.create(
             model="tts-1",
-            voice = voice,
+            voice=voice,
             input=text
         )
         unique_filename = f"speech_{uuid4()}.mp3"
@@ -174,8 +203,9 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def generate_story(prompt: str="You're tasked with writing a story script "):
+async def generate_story(prompt: str = "You're tasked with writing a story script "):
     try:
+        prompt =f" generate a story on topic {prompt}"
         story_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -203,7 +233,7 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
             top_p=1
         )
         # urls = search_videos()
-        queries=keyword_response.choices[0].message.content.split('\n')
+        queries = keyword_response.choices[0].message.content.split('\n')
         headers = {
             "Authorization": f"{API_KEY}"
         }
@@ -211,19 +241,20 @@ async def generate_story(prompt: str="You're tasked with writing a story script 
         # Make a request to the Pexels API
         for query in queries:
             try:
-                response = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1&orientation=landscape&size=small",
-                                        headers=headers)
+                response = requests.get(
+                    f"https://api.pexels.com/videos/search?query={query}&per_page=1&orientation=landscape&size=small",
+                    headers=headers)
             except Exception as e:
                 return {"error": e}
 
             if response.status_code != 200:
                 continue
             response = response.json()
-            for video in  response['videos'][0]['video_files']:
+            for video in response['videos'][0]['video_files']:
                 if video['height'] == 720 and video['width'] == 1280:
                     urls.append(video['link'])
                     break
-        return {"urls": urls,"story": story}
+        return {"urls": urls, "story": story}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

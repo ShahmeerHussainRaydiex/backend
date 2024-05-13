@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import os
 from uuid import uuid4
 from fastapi.responses import FileResponse
-from pydub.utils import mediainfo
 
 app = FastAPI()
 load_dotenv()
@@ -97,9 +96,7 @@ async def convert_text_to_speech(text: str, voice: str = "onyx", language=""):
         unique_filename = f"speech_{uuid4()}.mp3"
         speech_file_path = Path(__file__).parent / unique_filename
         response.stream_to_file(speech_file_path)
-        audio_duration = mediainfo(speech_file_path)['duration']
-        headers = {"X-Audio-Duration": str(audio_duration)}
-        return FileResponse(unique_filename, headers=headers)
+        return FileResponse(unique_filename)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
